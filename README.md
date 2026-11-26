@@ -2,35 +2,24 @@
 
 面向 AX650N 的中英文轻量级流式语音合成研究项目，基于 [M5-TTS](https://github.com/ASLP-lab/M5-TTS)。
 
-## 研发方案
+[蒸馏工程运行手册](docs/distillation.md) · [小样本蒸馏总体实施方案](docs/01_蒸馏总体实施方案.md)
 
-[完整小样本蒸馏实施方案（V1.0）](docs/01_蒸馏总体实施方案.md)
+## 蒸馏流程
 
-## 核心路线
+1. 检查语料 CSV，按说话人和录音组隔离数据，输出嵌套的 1h、3h、10h 中英混合训练清单。
+2. 用同源 Codec 编码音频，以真实码本前缀提取 Teacher 的 Temporal hidden 和 CB1–CB15 条件分布。
+3. 从 Teacher 迁移三层 Depth Decoder，裁剪 SwiGLU 中间通道，冻结其余参数，使用 Top-K + 尾部 KL 和真实码本 CE 训练。
+4. 保存可续训的 Student bundle；执行 PyTorch WAV 推理，或导出上游 ONNX Runtime 模型。
 
-- 冻结 Temporal Backbone 与 Codec，优先蒸馏 Depth Decoder。
-- 先做随机权重上板测速，再按 1h → 3h → 10h 的嵌套双语数据规模开展蒸馏；通过质量与速度门禁即停止扩充。
-- 独立评估 Host 音频头低秩化，随后试验分组预测。
-- 在 LITTLE 单核、OMP=1 约束下，以板端实测 RTF、首包时延和中文 CER / 英文 WER 为验收依据。
-
-## 工程目录
-
-| 目录 | 用途 |
+| 路径 | 内容 |
 | --- | --- |
-| docs/ | 研发方案与后续实验文档 |
-| configs/ | 训练及编译配置 |
-| datasets/ | 数据处理脚本（不存放原始语料） |
-| models/ | Student 网络结构 |
-| distill/ | 蒸馏训练及 Teacher 轨迹提取 |
-| export/ | ONNX 导出 |
-| compile/ | Pulsar2 量化编译 |
-| inference/ | Python / C++ 推理 |
-| evaluation/ | 中英文音质评测 |
-| benchmarks/ | 板端性能测试 |
-| scripts/ | 工程运行脚本 |
+| `m5_lite/data.py` | 语料检查、切分清单和实际小时数 |
+| `m5_lite/tracks.py` | Teacher 轨迹提取与二进制分片 |
+| `m5_lite/depth.py` | 层及 FFN 通道迁移、全帧 Depth 前向 |
+| `m5_lite/train.py` | KD/CE、验证、权重保存及续训 |
+| `m5_lite/infer.py`、`m5_lite/export_onnx.py` | WAV 推理、RTF 记录、ONNX 导出 |
+| `configs/depth_s.json`、`tests/` | 默认配置与回归测试 |
 
-## 当前状态
+当前工程实现的是基于真实录音的 teacher-forced Depth 蒸馏。自由运行轨迹、Host 低秩头、分组预测、Pulsar2 量化和 AX650N C++ 集成沿用总体方案的实验计划。板端 RTF、首包时延和中英文识别错误率须用同源模型实测。
 
-方案已提交；代码目录仅为占位，尚未实现或验证训练、编译和推理代码。目标指标不是已实现的结果。
-
-原始语料、参考音色、Teacher 轨迹、模型权重及本地实验产物不纳入版本控制。使用前核查上游模型和数据许可。
+原始语料、参考音色、Teacher 轨迹、模型权重及本地实验产物存放在本地忽略目录中。使用前核查上游模型及语料授权。

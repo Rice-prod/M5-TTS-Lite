@@ -32,3 +32,4 @@ wandb/
 .env
 .env.*
 !.env.example
+third_party/
