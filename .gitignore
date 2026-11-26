@@ -1,0 +1,34 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+
+# Local datasets, checkpoints and experiment artifacts
+data/
+datasets/raw/
+datasets/processed/
+datasets/cache/
+tracks/
+checkpoints/
+weights/
+runs/
+outputs/
+reports/
+wandb/
+*.wav
+*.flac
+*.mp3
+*.pt
+*.pth
+*.ckpt
+*.safetensors
+*.onnx
+*.axmodel
+*.npy
+*.npz
+*.bin
+.env
+.env.*
+!.env.example
